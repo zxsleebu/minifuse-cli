@@ -1,6 +1,6 @@
-# Arturia MiniFuse 2 Auto +48v
+# Arturia MiniFuse Auto +48v
 
-A Python script to programmatically toggle **+48V Phantom Power** on the **Arturia MiniFuse 2** audio interface. 
+A Python script to programmatically toggle **+48V Phantom Power** on the **Arturia MiniFuse** audio interface. 
 
 This script is specifically designed for **Windows**.
 
