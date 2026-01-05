@@ -5,11 +5,11 @@ import os
 
 DLL_PATH = r"C:\Program Files\Arturia\MiniFuseAudioDriver\x64\arturiaminifuseusbaudioapi_x64.dll"
 
-# Control Selectors
+SELECTOR_INSTRUMENT    = 0
 SELECTOR_PHANTOM_POWER = 4
 SELECTOR_DIRECT_MONO   = 5
 
-def set_minifuse_param(target_selector, turn_on):
+def set_minifuse_param(target_selector, turn_on, channel=0):
     if not os.path.exists(DLL_PATH):
         print(f"[-] Error: DLL not found at {DLL_PATH}")
         return
@@ -35,36 +35,35 @@ def set_minifuse_param(target_selector, turn_on):
         print(f"[-] Failed to open device. Error Code: {res}")
         return
 
-    # print(f"[*] Device opened. Handle: {handle.value}")
-
-    # TUsbAudioStatus TUSBAUDIO_AudioControlRequestSet(...)
     send_req = lib.TUSBAUDIO_AudioControlRequestSet
     send_req.argtypes = [
-        ctypes.c_void_p,        # Handle
-        ctypes.c_ubyte,         # EntityID
-        ctypes.c_ubyte,         # Request
-        ctypes.c_ubyte,         # ControlSelector
-        ctypes.c_ubyte,         # Channel
-        ctypes.c_void_p,        # Buffer Pointer
-        ctypes.c_uint,          # Buffer Length
-        ctypes.c_void_p,        # Bytes Transferred
-        ctypes.c_uint           # Timeout
+        ctypes.c_void_p,
+        ctypes.c_ubyte,
+        ctypes.c_ubyte,
+        ctypes.c_ubyte,
+        ctypes.c_ubyte,
+        ctypes.c_void_p,
+        ctypes.c_uint,
+        ctypes.c_void_p,
+        ctypes.c_uint
     ]
     send_req.restype = ctypes.c_int
 
     val = 1 if turn_on else 0
-    data = struct.pack('<H', val) # 2 Bytes
+    data = struct.pack('<H', val)
     buf = ctypes.create_string_buffer(data)
 
-    target_name = "Phantom Power" if target_selector == SELECTOR_PHANTOM_POWER else "Direct Mono"
+    target_name = "Unknown"
+    if target_selector == SELECTOR_PHANTOM_POWER:
+        target_name = "Phantom Power"
+    elif target_selector == SELECTOR_DIRECT_MONO:
+        target_name = "Direct Mono"
+    elif target_selector == SELECTOR_INSTRUMENT:
+        target_name = f"Instrument (Channel {channel + 1})"
+
     print(f"[*] Setting {target_name} to {'ON' if turn_on else 'OFF'}...")
     
-    # Execute
-    # EntityID = 0
-    # Request = 34 (SET_CUR)
-    # Selector = Passed Argument (4 or 5)
-    # Channel = 0
-    res = send_req(handle, 0, 34, target_selector, 0, buf, 2, None, 1000)
+    res = send_req(handle, 0, 34, target_selector, channel, buf, 2, None, 1000)
 
     if res == 0:
         print(f"[+] SUCCESS! {target_name} toggled.")
@@ -75,32 +74,24 @@ def set_minifuse_param(target_selector, turn_on):
         lib.TUSBAUDIO_CloseDevice(handle)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage:")
-        print("  python script.py power [on/off]")
-        print("  python script.py mono [on/off]")
+    args = [a.lower() for a in sys.argv]
+    
+    if len(args) < 2:
+        print("Usage: python script.py [power|mono|inst] [on/off] (optional: channel number for inst [1-2])")
         sys.exit(1)
 
-    target_cmd = sys.argv[1].lower()
-    selector = None
-
-    if target_cmd == "power":
-        selector = SELECTOR_PHANTOM_POWER
-    elif target_cmd == "mono":
+    selector = SELECTOR_PHANTOM_POWER
+    channel = 0
+    
+    if "inst" in args or "instrument" in args:
+        selector = SELECTOR_INSTRUMENT
+        if "2" in args:
+            channel = 1
+    elif "mono" in args or "direct" in args:
         selector = SELECTOR_DIRECT_MONO
-    else:
-        print(f"[-] Unknown command: '{target_cmd}'. Use 'power' or 'mono'.")
-        sys.exit(1)
+    
+    state = True
+    if "off" in args:
+        state = False
 
-    state = True # Default to ON
-    if len(sys.argv) > 2:
-        state_cmd = sys.argv[2].lower()
-        if state_cmd == "off":
-            state = False
-        elif state_cmd == "on":
-            state = True
-        else:
-            print(f"[-] Unknown state: '{state_cmd}'. Use 'on' or 'off'.")
-            sys.exit(1)
-
-    set_minifuse_param(selector, state)
+    set_minifuse_param(selector, state, channel)
