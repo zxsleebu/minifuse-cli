@@ -77,7 +77,7 @@ if __name__ == "__main__":
     args = [a.lower() for a in sys.argv]
     
     if len(args) < 2:
-        print("Usage: python script.py [power|mono|inst] [on/off] (optional: channel number for inst [1-2])")
+        print("Usage: python main.py [power|mono|inst] [on/off] (optional: channel number for inst [1-2])")
         sys.exit(1)
 
     selector = SELECTOR_PHANTOM_POWER
