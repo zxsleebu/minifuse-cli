@@ -35,19 +35,37 @@ def set_minifuse_param(target_selector, turn_on, channel=0):
         print(f"[-] Failed to open device. Error Code: {res}")
         return
 
+    # Based on tusbaudioapi.h
+    # https://github.com/mattgonzalez/ProductionTest/blob/5e85e334bc83d0486a2a22cf67c52ffc23ad0af4/Source/win32/usb/win/tusbaudioapi.h#L570
+    # https://github.com/lilltroll77/DCF/blob/e390673629f4d2548e638d4760e328cd2112f6af/tusbaudioapi.h#L1389
+    # 
+    # TUsbAudioStatus TUSBAUDIO_AudioControlRequestSet(
+    #    TUsbAudioHandle deviceHandle,
+    #    unsigned char entityID,
+    #    unsigned char request,
+    #    unsigned char controlSelector,
+    #    unsigned char channelOrMixerControl,
+    #    const void* paramBlock,
+    #    unsigned int paramBlockLength,
+    #    unsigned int* bytesTransferred,
+    #    unsigned int timeoutMillisecs
+    # );
+    
     send_req = lib.TUSBAUDIO_AudioControlRequestSet
     send_req.argtypes = [
-        ctypes.c_void_p,
-        ctypes.c_ubyte,
-        ctypes.c_ubyte,
-        ctypes.c_ubyte,
-        ctypes.c_ubyte,
-        ctypes.c_void_p,
-        ctypes.c_uint,
-        ctypes.c_void_p,
-        ctypes.c_uint
+        ctypes.c_void_p,        # Handle
+        ctypes.c_ubyte,         # EntityID
+        ctypes.c_ubyte,         # Request
+        ctypes.c_ubyte,         # ControlSelector
+        ctypes.c_ubyte,         # Channel
+        ctypes.c_void_p,        # Buffer Pointer
+        ctypes.c_uint,          # Buffer Length
+        ctypes.c_void_p,        # Bytes Transferred (Optional Pointer)
+        ctypes.c_uint           # Timeout
     ]
     send_req.restype = ctypes.c_int
+
+    # https://github.com/mattgonzalez/ProductionTest/blob/5e85e334bc83d0486a2a22cf67c52ffc23ad0af4/Source/win32/usb/win/ehw.cpp#L1690
 
     val = 1 if turn_on else 0
     data = struct.pack('<H', val)
